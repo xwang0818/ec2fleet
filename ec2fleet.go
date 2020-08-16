@@ -7,17 +7,18 @@ import "strings"
 import "log"
 import "os"
 
-
 const SPOT_PERCENTAGE = 80
 const volumeSizeDefault = 3
 const amiIdDefault = "ubuntu-18.04"
-const instanceTypesDefault = "t3.micro"
+const instanceTypeDefault = "t3.micro"
 
-
-
-func validateArgs(nodes int, subnets []string, securityGroups []string) bool {
+func validateArgs(nodes int, volumeSize int, subnets []string, securityGroups, instanceTypes []string) bool {
     if nodes == 0 {
         log.Fatal("Number of nodes can not be zero.")
+        return false
+    }
+    if volumeSize == 0 {
+        log.Fatal("Volume size can not be zero.")
         return false
     }
     if len(subnets) == 0  {
@@ -28,8 +29,8 @@ func validateArgs(nodes int, subnets []string, securityGroups []string) bool {
         log.Fatal("Must specify securityGroups.")
         return false
     }
-    if len(subnets) != len(securityGroups) || len(subnets) != nodes {
-        log.Fatal("Number of subnets and securityGroups specify must equal to number of nodes.")
+    if  len(subnets) != nodes || len(securityGroups) != nodes || len(instanceTypes) != nodes {
+        log.Fatal("Number of subnets, securityGroups, instanceTypes must equal to number of nodes.")
         return false
     }
     return true
@@ -50,11 +51,10 @@ func main () {
     flag.Parse()
 
     var nodes, volumeSize int
-    var instanceTypes, amiId string
-    var subnets, securityGroups []string
+    var amiId string
+    var subnets, securityGroups, instanceTypes []string
 
     volumeSize = volumeSizeDefault
-    instanceTypes = instanceTypesDefault
     amiId = amiIdDefault
 
     if *configPtr != "" {
@@ -68,25 +68,36 @@ func main () {
         if *volumeSizePtr != 0 {
             volumeSize = *volumeSizePtr
         }
-        if *instanceTypesPtr != "" {
-            instanceTypes = *instanceTypesPtr
-        }
         if *amiIdPtr != "" {
             amiId = *amiIdPtr
         }
+        if *instanceTypesPtr != "" {
+            instanceTypes = strings.Split(*instanceTypesPtr, ",")
+        } else {
+            instanceTypes = make([]string, nodes)
+            for i := range instanceTypes {
+                instanceTypes[i] = instanceTypeDefault
+            }
+        }
     }
-    if !validateArgs(nodes, subnets, securityGroups) {
+    if !validateArgs(nodes, volumeSize, subnets, securityGroups, instanceTypes) {
         os.Exit(1)
     }
 
     ///*
     fmt.Println("nodes:", nodes)
+    fmt.Println("volumeSize:", volumeSize)
+    fmt.Println("amiId:", amiId)
     fmt.Println("subnets:", subnets)
     fmt.Println("securityGroups:", securityGroups)
     fmt.Println("instanceTypes:", instanceTypes)
-    fmt.Println("volumeSize:", volumeSize)
-    fmt.Println("amiId:", amiId)
     //*/
     fmt.Println(SPOT_PERCENTAGE)
-    api.CreateFleet()
+    requestBody := api.GetCreateFleetRequestTemplate(nodes,
+                                                    volumeSize,
+                                                    amiId,
+                                                    subnets,
+                                                    securityGroups,
+                                                    instanceTypes)
+    api.CreateFleet(requestBody)
 }

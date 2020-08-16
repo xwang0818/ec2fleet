@@ -10,6 +10,6 @@
     ],
     "TargetCapacitySpecification": {
         "TotalTargetCapacity": 2,
-        "DefaultTargetCapacityType": "on-demand"
+        "DefaultTargetCapacityType": "spot"
     }
 }

@@ -10,7 +10,4 @@ export AWS_SECRET_ACCESS_KEY=SECRET
 # only read if AWS_SECRET_ACCESS_KEY is not set.
 # AWS_SECRET_KEY=SECRET=SECRET
 
-# Session Token
-export AWS_SESSION_TOKEN=TOKEN
-
 export AWS_REGION=us-east-1
