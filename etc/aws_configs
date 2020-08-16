@@ -1,0 +1,16 @@
+# Access Key ID
+export AWS_ACCESS_KEY_ID=AKID
+
+# only read if AWS_ACCESS_KEY_ID is not set.
+export AWS_ACCESS_KEY=AKID
+
+# Secret Access Key
+export AWS_SECRET_ACCESS_KEY=SECRET
+
+# only read if AWS_SECRET_ACCESS_KEY is not set.
+# AWS_SECRET_KEY=SECRET=SECRET
+
+# Session Token
+export AWS_SESSION_TOKEN=TOKEN
+
+export AWS_REGION=us-east-1
