@@ -1,23 +1,23 @@
 # ec2fleet
 
-`ec2fleet` is a command line tool that can be used to provision AWS fleets
+`ec2fleet` is a command line tool that can be used to provision AWS fleets.
 
 ## Instructions
 
-#### clone and build this repo
+#### 1. Clone and build this repo
+NOTE: First time building this package may take longer because `go` needs to fetch ec2 dependencies
 ```
 git clone git@github.com:xwang0818/ec2fleet.git
 cd ec2fleet/
 make
-
 ```
 
-### modify etc/aws_configs to include your AWS credentials
+### 2. Modify etc/aws.configs to include your AWS credentials
 ```
 source etc/aws.config
 ```
 
-### Use the help page to learn how to use the CLI
+### 3. Use the help page to learn how to use the CLI
 ```
 cd build/
 ./ec2fleet --help
