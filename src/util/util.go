@@ -33,54 +33,140 @@ func ValidateArgs(nodes int, volumeSize int, subnets []string, securityGroups, i
     return nil
 }
 
-func GetCreateFleetRequestTemplate(nodes int,
-                                    volumeSize int,
-                                    amiId string,
-                                    subnets []string,
-                                    securityGroups,
-                                    instanceTypes []string,
-                                    spot int) *ec2.CreateFleetInput {
+func GetCreateLaunchTemplateInput(templateName string,
+                        volumeSize int64,
+                        amiId string,
+                        instanceTypeDefault string,
+                        securityGroups []string) *ec2.CreateLaunchTemplateInput {
+    secGroups := []*string{}
+    for i := range securityGroups {
+        secGroups = append(secGroups, &securityGroups[i])
+    }
+    input := &ec2.CreateLaunchTemplateInput{
+        LaunchTemplateData: &ec2.RequestLaunchTemplateData{
+            ImageId:      aws.String(amiId),
+            InstanceType: aws.String(instanceTypeDefault),
+            SecurityGroups: secGroups,
+            // TODO: This need to be created as shared by first 16 instances
+            BlockDeviceMappings: []*ec2.LaunchTemplateBlockDeviceMappingRequest {
+                {
+                    Ebs: &ec2.LaunchTemplateEbsBlockDeviceRequest{
+                        VolumeSize: aws.Int64(volumeSize),
+                        VolumeType: aws.String("io1"),
+                    },
+                },
+            },
+        },
+        LaunchTemplateName: aws.String(templateName),
+    }
+    return input
+}
 
-    template := &ec2.CreateFleetInput {
+func CreateLaunchTemplate(input *ec2.CreateLaunchTemplateInput) *ec2.CreateLaunchTemplateOutput {
+    svc := ec2.New(session.New())
+    responseBody, err := svc.CreateLaunchTemplate(input)
+    if err != nil {
+        log.Println("Create Launch Template error:")
+        if aerr, ok := err.(awserr.Error); ok {
+            switch aerr.Code() {
+            case "DryRunOperation":
+                log.Println("Create Launch Template DryRun succeeded.")
+            default:
+                log.Println("Create Launch Template status code: ", aerr.Code())
+                log.Fatal(aerr.Error())
+            }
+        } else {
+            log.Fatal(err.Error())
+        }
+    }
+    log.Println("Launch Template created successfully:\n", responseBody)
+    return responseBody
+}
+
+func DeleteLaunchTemplate(templateId string) *ec2.DeleteLaunchTemplateOutput {
+    svc := ec2.New(session.New())
+    input := &ec2.DeleteLaunchTemplateInput{
+        LaunchTemplateId: aws.String(templateId),
+    }
+    responseBody, err := svc.DeleteLaunchTemplate(input)
+    if err != nil {
+        log.Println("Delete Launch Template error:")
+        if aerr, ok := err.(awserr.Error); ok {
+            switch aerr.Code() {
+            case "DryRunOperation":
+                log.Println("Delete Launch Template DryRun succeeded.")
+            default:
+                log.Println("Delete Launch Template status code: ", aerr.Code())
+                log.Fatal(aerr.Error())
+            }
+        } else {
+            log.Fatal(err.Error())
+        }
+    }
+    log.Println("Launch template", templateId, "was delete successfully.")
+    return responseBody
+}
+
+func GetCreateFleetRequestInput(nodes int64,
+                                launchTemplateId string,
+                                subnets []string,
+                                instanceTypes []string,
+                                availabilityZones []string,
+                                onDemandPercentage int64) *ec2.CreateFleetInput {
+    onDemand := onDemandPercentage*nodes/100
+    spot := nodes - onDemand
+    overrides := []*ec2.FleetLaunchTemplateOverridesRequest {}
+    size := int(nodes)
+    for i := 0; i < size; i++ {
+        az := availabilityZones[0]
+        if i > size/2 {
+            az = availabilityZones[1]
+        }
+        overrides = append(overrides, &ec2.FleetLaunchTemplateOverridesRequest{
+            AvailabilityZone: aws.String(az),
+            InstanceType: aws.String(instanceTypes[i]),
+            SubnetId: aws.String(subnets[i]),
+        })
+    }
+
+    input := &ec2.CreateFleetInput {
         // DryRun is set because of testing
         DryRun: aws.Bool(true),
         LaunchTemplateConfigs: []*ec2.FleetLaunchTemplateConfigRequest {
             {
                 LaunchTemplateSpecification: &ec2.FleetLaunchTemplateSpecificationRequest {
-                    LaunchTemplateId: aws.String("lt-0e8c754449b27161c"),
-                    Version: aws.String("1"),
+                    LaunchTemplateId: aws.String(launchTemplateId),
                 },
-                Overrides: []*ec2.FleetLaunchTemplateOverridesRequest {
-                    {
-                        AvailabilityZone: aws.String("us-east-1"),
-                        InstanceType: aws.String("t1.micro"),
-                        SubnetId: aws.String("ididid"),
-                    },
-                },
+                Overrides: overrides,
             },
         },
         TargetCapacitySpecification: &ec2.TargetCapacitySpecificationRequest {
-            TotalTargetCapacity: aws.Int64(2),
+            OnDemandTargetCapacity: aws.Int64(onDemand),
+            SpotTargetCapacity: aws.Int64(spot),
+            TotalTargetCapacity: aws.Int64(nodes),
             DefaultTargetCapacityType: aws.String("spot"),
         },
     }
-    return template
+    return input
 }
 
 func CreateFleet(requestBody *ec2.CreateFleetInput) (*ec2.CreateFleetOutput) {
     svc := ec2.New(session.New())
-    result, err := svc.CreateFleet(requestBody)
+    responseBody, err := svc.CreateFleet(requestBody)
     if err != nil {
+        log.Println("Create Fleet error:")
         if aerr, ok := err.(awserr.Error); ok {
             switch aerr.Code() {
+            case "DryRunOperation":
+                log.Println("Create Fleet DryRun succeeded.")
             default:
+                log.Println("Create Fleet status code: ", aerr.Code())
                 log.Fatal(aerr.Error())
             }
         } else {
-            // Print the error, cast err to awserr.Error to get the Code and
-            // Message from an error.
             log.Fatal(err.Error())
         }
     }
-    return result
+    log.Println("EC2 fleet created successfully:", responseBody)
+    return responseBody
 }
