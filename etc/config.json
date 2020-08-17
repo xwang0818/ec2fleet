@@ -4,8 +4,24 @@
             "LaunchTemplateSpecification": {
                 "LaunchTemplateId": "lt-0e8c754449b27161c",
                 "Version": "1"
-            }
-
+            },
+            "Overrides": [
+                {
+                  "InstanceType": "c4.large",
+                  "WeightedCapacity": 1,
+                  "SubnetId": "subnet-a4f6c5d3"
+                },
+                {
+                  "InstanceType": "c3.large",
+                  "WeightedCapacity": 1,
+                  "SubnetId": "subnet-a4f6c5d3"
+                },
+                {
+                  "InstanceType": "c5.large",
+                  "WeightedCapacity": 1,
+                  "SubnetId": "subnet-a4f6c5d3"
+                }
+            ]
         }
     ],
     "TargetCapacitySpecification": {

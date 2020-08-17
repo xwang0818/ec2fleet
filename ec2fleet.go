@@ -1,40 +1,23 @@
+/* Copyright (C) Xiang Wang - All Rights Reserved
+ * Unauthorized copying of this file, via any medium is strictly prohibited
+ * Proprietary and confidential
+ * Written by Xiang Wang <xwang1314@gmail.com>, August 2020
+ */
+
 package main
 
-import "api"
+import "util"
 import "flag"
-import "fmt"
 import "strings"
-import "log"
 import "os"
+import "log"
+import "fmt"
+
 
 const SPOT_PERCENTAGE = 80
 const volumeSizeDefault = 3
 const amiIdDefault = "ubuntu-18.04"
 const instanceTypeDefault = "t3.micro"
-
-func validateArgs(nodes int, volumeSize int, subnets []string, securityGroups, instanceTypes []string) bool {
-    if nodes == 0 {
-        log.Fatal("Number of nodes can not be zero.")
-        return false
-    }
-    if volumeSize == 0 {
-        log.Fatal("Volume size can not be zero.")
-        return false
-    }
-    if len(subnets) == 0  {
-        log.Fatal("Must specify subnets.")
-        return false
-    }
-    if len(securityGroups) == 0 {
-        log.Fatal("Must specify securityGroups.")
-        return false
-    }
-    if  len(subnets) != nodes || len(securityGroups) != nodes || len(instanceTypes) != nodes {
-        log.Fatal("Number of subnets, securityGroups, instanceTypes must equal to number of nodes.")
-        return false
-    }
-    return true
-}
 
 func main () {
     // Flags
@@ -80,7 +63,9 @@ func main () {
             }
         }
     }
-    if !validateArgs(nodes, volumeSize, subnets, securityGroups, instanceTypes) {
+    err := util.ValidateArgs(nodes, volumeSize, subnets, securityGroups, instanceTypes)
+    if  err != nil {
+        log.Fatal(err)
         os.Exit(1)
     }
 
@@ -92,12 +77,14 @@ func main () {
     fmt.Println("securityGroups:", securityGroups)
     fmt.Println("instanceTypes:", instanceTypes)
     //*/
-    fmt.Println(SPOT_PERCENTAGE)
-    requestBody := api.GetCreateFleetRequestTemplate(nodes,
+
+    requestBody := util.GetCreateFleetRequestTemplate(nodes,
                                                     volumeSize,
                                                     amiId,
                                                     subnets,
                                                     securityGroups,
-                                                    instanceTypes)
-    api.CreateFleet(requestBody)
+                                                    instanceTypes,
+                                                    SPOT_PERCENTAGE)
+    response := util.CreateFleet(requestBody)
+    fmt.Println(response)
 }

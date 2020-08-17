@@ -1,3 +1,4 @@
+etc/aws.config
 src/github.com/
 build/
 pkg/

@@ -14,7 +14,7 @@ make
 
 ### modify etc/aws_configs to include your AWS credentials
 ```
-source etc/aws_configs
+source etc/aws.config
 ```
 
 ### Use the help page to learn how to use the CLI
