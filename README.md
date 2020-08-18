@@ -20,5 +20,7 @@ source etc/aws.config
 ### 3. Use the help page to learn how to use the CLI
 ```
 cd build/
-./ec2fleet --help
+.ec2fleet -help
+# eg.
+.ec2fleet -nodes=5 -volumeSize=4 -subnets=subnet1,subnet2,subnet3,subnet4,subnet5 -securityGroups=sg1,sg2
 ```

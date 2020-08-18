@@ -14,48 +14,47 @@ import "errors"
 import "log"
 
 
-func ValidateArgs(nodes int, volumeSize int, subnets []string, securityGroups, instanceTypes []string) error {
+func ValidateArgs(nodes, volumeSize int, subnets, securityGroups, instanceTypes []string) error {
     if nodes == 0 {
         return errors.New("Number of nodes can not be zero.")
     }
-    if volumeSize == 0 {
-        return errors.New("Volume size can not be zero.")
+    if volumeSize < 4 || volumeSize > 16384 {
+        return errors.New("Invalid volume size, must be between 4-16384 Gib inclusively.")
     }
-    if len(subnets) == 0  {
-        return errors.New("Must specify subnets.")
+    for _, sub := range subnets {
+        if sub == "" {
+            return errors.New("Subnet can not be empty.")
+        }
     }
-    if len(securityGroups) == 0 {
-        return errors.New("Must specify securityGroups.")
+    for _, sg := range securityGroups {
+        if sg == "" {
+            return errors.New("Security group cannot be empty.")
+        }
     }
-    if  len(subnets) != nodes || len(securityGroups) != nodes || len(instanceTypes) != nodes {
-        return errors.New("Number of subnets, securityGroups, instanceTypes must equal to number of nodes.")
+    for _, it := range instanceTypes {
+        if it == "" {
+            return errors.New("Instance type cannot be empty.")
+        }
+    }
+    if  len(subnets) != nodes || len(instanceTypes) != nodes {
+        return errors.New("Number of subnets and instanceTypes must equal to number of nodes.")
     }
     return nil
 }
 
 func GetCreateLaunchTemplateInput(templateName string,
-                        volumeSize int64,
-                        amiId string,
-                        instanceTypeDefault string,
-                        securityGroups []string) *ec2.CreateLaunchTemplateInput {
+                                  amiId string,
+                                  instanceTypeDefault string,
+                                  securityGroups []string) *ec2.CreateLaunchTemplateInput {
     secGroups := []*string{}
     for i := range securityGroups {
         secGroups = append(secGroups, &securityGroups[i])
     }
     input := &ec2.CreateLaunchTemplateInput{
         LaunchTemplateData: &ec2.RequestLaunchTemplateData{
-            ImageId:      aws.String(amiId),
-            InstanceType: aws.String(instanceTypeDefault),
-            SecurityGroups: secGroups,
-            // TODO: This need to be created as shared by first 16 instances
-            BlockDeviceMappings: []*ec2.LaunchTemplateBlockDeviceMappingRequest {
-                {
-                    Ebs: &ec2.LaunchTemplateEbsBlockDeviceRequest{
-                        VolumeSize: aws.Int64(volumeSize),
-                        VolumeType: aws.String("io1"),
-                    },
-                },
-            },
+            ImageId:        aws.String(amiId),
+            InstanceType:   aws.String(instanceTypeDefault),
+            SecurityGroupIds: secGroups,
         },
         LaunchTemplateName: aws.String(templateName),
     }
@@ -119,7 +118,7 @@ func GetCreateFleetRequestInput(nodes int64,
     size := int(nodes)
     for i := 0; i < size; i++ {
         az := availabilityZones[0]
-        if i > size/2 {
+        if i >= size/2 {
             az = availabilityZones[1]
         }
         overrides = append(overrides, &ec2.FleetLaunchTemplateOverridesRequest{
@@ -131,15 +130,17 @@ func GetCreateFleetRequestInput(nodes int64,
 
     input := &ec2.CreateFleetInput {
         // DryRun is set because of testing
-        DryRun: aws.Bool(true),
+        // DryRun: aws.Bool(true),
         LaunchTemplateConfigs: []*ec2.FleetLaunchTemplateConfigRequest {
             {
                 LaunchTemplateSpecification: &ec2.FleetLaunchTemplateSpecificationRequest {
                     LaunchTemplateId: aws.String(launchTemplateId),
+                    Version: aws.String("1"),
                 },
                 Overrides: overrides,
             },
         },
+        Type: aws.String("instant"),
         TargetCapacitySpecification: &ec2.TargetCapacitySpecificationRequest {
             OnDemandTargetCapacity: aws.Int64(onDemand),
             SpotTargetCapacity: aws.Int64(spot),
@@ -150,7 +151,7 @@ func GetCreateFleetRequestInput(nodes int64,
     return input
 }
 
-func CreateFleet(requestBody *ec2.CreateFleetInput) (*ec2.CreateFleetOutput) {
+func CreateFleet(requestBody *ec2.CreateFleetInput) (*ec2.CreateFleetOutput, error) {
     svc := ec2.New(session.New())
     responseBody, err := svc.CreateFleet(requestBody)
     if err != nil {
@@ -168,5 +169,33 @@ func CreateFleet(requestBody *ec2.CreateFleetInput) (*ec2.CreateFleetOutput) {
         }
     }
     log.Println("EC2 fleet created successfully:", responseBody)
+    return responseBody, err
+}
+
+func CreateVolume(vSize int64, aZone string) *ec2.Volume {
+    svc := ec2.New(session.New())
+    input := &ec2.CreateVolumeInput{
+        Size:               aws.Int64(vSize),
+        Iops:               aws.Int64(200),
+        VolumeType:         aws.String("io1"),
+        AvailabilityZone:   aws.String(aZone),
+        MultiAttachEnabled: aws.Bool(true),
+    }
+    responseBody, err := svc.CreateVolume(input)
+    if err != nil {
+        log.Println("Create volume error:")
+        if aerr, ok := err.(awserr.Error); ok {
+            switch aerr.Code() {
+            case "DryRunOperation":
+                log.Println("Create volume DryRun succeeded.")
+            default:
+                log.Println("Create volume status code: ", aerr.Code())
+                log.Fatal(aerr.Error())
+            }
+        } else {
+            log.Fatal(err.Error())
+        }
+    }
+    log.Println("Volume created successfully.")
     return responseBody
 }
