@@ -17,6 +17,7 @@ import "time"
 import "log"
 import "os"
 
+
 type Configs struct {
     Nodes int `json:"nodes"`
     AmiId string `json:"amiId"`
@@ -83,6 +84,7 @@ func GetCreateLaunchTemplateInput(templateName string,
             InstanceType:   aws.String(instanceTypeDefault),
             SecurityGroupIds: secGroups,
             Placement: &ec2.LaunchTemplatePlacementRequest {
+                // TODO: remove this hardcoded az
                 AvailabilityZone: aws.String("us-east-1a"),
             },
         },

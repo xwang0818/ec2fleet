@@ -10,7 +10,7 @@
         "sg-0e6218c9c2826b9dd"
     ],
     "instanceTypes": [
-        "t2.micro",
-        "t2.micro"
+        "t3.micro",
+        "t3.micro"
     ]
 }

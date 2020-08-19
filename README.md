@@ -22,7 +22,7 @@ source etc/aws.config
 cd build/
 .ec2fleet -help
 # eg.
-./ec2fleet -nodes=2 -volumeSize=4 -subnets=subnet-15288a34,subnet-d68bfc9b -securityGroups=sg-0e6218c9c2826b9dd -instanceTypes=t2.micro,t2.micro
+./ec2fleet -nodes=2 -volumeSize=4 -subnets=subnet-15288a34,subnet-d68bfc9b -securityGroups=sg-0e6218c9c2826b9dd -instanceTypes=t3.micro,t3.micro
 ```
 
 ### Using environment variables
