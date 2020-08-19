@@ -1,31 +1,16 @@
 {
-    "LaunchTemplateConfigs": [
-        {
-            "LaunchTemplateSpecification": {
-                "LaunchTemplateId": "lt-0e8c754449b27161c",
-                "Version": "1"
-            },
-            "Overrides": [
-                {
-                  "InstanceType": "c4.large",
-                  "WeightedCapacity": 1,
-                  "SubnetId": "subnet-a4f6c5d3"
-                },
-                {
-                  "InstanceType": "c3.large",
-                  "WeightedCapacity": 1,
-                  "SubnetId": "subnet-a4f6c5d3"
-                },
-                {
-                  "InstanceType": "c5.large",
-                  "WeightedCapacity": 1,
-                  "SubnetId": "subnet-a4f6c5d3"
-                }
-            ]
-        }
+    "nodes": 2,
+    "amiId": "ami-0bcc094591f354be2",
+    "volumeSize": 4,
+    "subnets": [
+        "subnet-15288a34",
+        "subnet-d68bfc9b"
     ],
-    "TargetCapacitySpecification": {
-        "TotalTargetCapacity": 2,
-        "DefaultTargetCapacityType": "spot"
-    }
+    "securityGroups": [
+        "sg-0e6218c9c2826b9dd"
+    ],
+    "instanceTypes": [
+        "t2.micro",
+        "t2.micro"
+    ]
 }

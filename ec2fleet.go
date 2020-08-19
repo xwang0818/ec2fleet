@@ -33,10 +33,11 @@ func main () {
     nodesPtr          := flag.Int("nodes", 0, "Number of Nodes\n(Require)\neg. -nodes=2")
     subnetsPtr        := flag.String("subnets", "", "Network IDs for each instance to attach to\n(Require)\neg. -subnets=sub1,sub2,...")
     securityGroupsPtr := flag.String("securityGroups", "", "Security group IDs that will be applied on all instances\n(Require)\neg. -securityGroups=sg1,sg2,...")
-    // optionalmultiAttachVolumeSize
+    // optional
     instanceTypesPtr  := flag.String("instanceTypes", "", "Instance types\n(Optional) Default: t3.micro.\neg. -instanceTypes=t3.micro\nMulti-Attach volume can only be attached to instance types that are Nitro System\nhttps://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html#ec2-nitro-instances")
     volumeSizePtr     := flag.Int("volumeSize", 0, "Multi-attach volume size\n(Optional) Default: 3\neg. -volumeSize=4\nMin: 4 GiB, Max: 16384 GiB")
     amiIdPtr          := flag.String("amiId", "", "Amazon Machine Image ID\n(Optional) Default: ami-0bbe28eb2173f6167 (ubuntu-18.04)\neg. -amiId=ami-0bbe28eb2173f6167")
+    // Other
     configPtr         := flag.String("configFile", "", "JSON config file\n(Optional) Default: empty\neg. -configFile=etc/config.json")
     envPtr            := flag.Bool("env", false, "Use environment variables\n(Optional) Default: false\neg. -env")
     flag.Parse()
@@ -55,7 +56,26 @@ func main () {
 
     if *configPtr != "" {
         log.Println("Using JSON config file", *configPtr)
-        // TODO make support for json file
+        configs := util.GetJsonObjectFromFile(*configPtr)
+
+        nodes = configs.Nodes
+        subnets = configs.Subnets
+        securityGroups = configs.SecurityGroups
+
+        if len(configs.InstanceTypes) > 0 {
+            instanceTypes = configs.InstanceTypes
+        } else {
+            instanceTypes = make([]string, nodes)
+            for i := range instanceTypes {
+                instanceTypes[i] = instanceTypeDefault
+            }
+        }
+        if configs.VolumeSize > 0 {
+            volumeSize = configs.VolumeSize
+        }
+        if configs.AmiId != "" {
+            amiId = configs.AmiId
+        }
     } else if *envPtr {
         log.Println("Using environment variables")
         var err error

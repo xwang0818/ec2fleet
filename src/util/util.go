@@ -10,11 +10,33 @@ import "github.com/aws/aws-sdk-go/service/ec2"
 import "github.com/aws/aws-sdk-go/aws/session"
 import "github.com/aws/aws-sdk-go/aws/awserr"
 import "github.com/aws/aws-sdk-go/aws"
+import "encoding/json"
+import "io/ioutil"
 import "errors"
 import "time"
 import "log"
 import "os"
 
+type Configs struct {
+    Nodes int `json:"nodes"`
+    AmiId string `json:"amiId"`
+    VolumeSize int `json:"volumeSize"`
+    Subnets []string `json:"subnets"`
+    SecurityGroups []string `json:"securityGroups"`
+    InstanceTypes []string `json:"instanceTypes"`
+}
+
+func GetJsonObjectFromFile(filename string) Configs {
+    file, err := ioutil.ReadFile(filename)
+    if err != nil {
+        log.Fatal(err)
+        os.Exit(1)
+    }
+    data := Configs{}
+    log.Println(string([]byte(file)))
+	_ = json.Unmarshal([]byte(file), &data)
+    return data
+}
 
 func ValidateInputs(nodes, volumeSize int, subnets, securityGroups, instanceTypes []string) error {
     if nodes <= 0 {
@@ -27,6 +49,9 @@ func ValidateInputs(nodes, volumeSize int, subnets, securityGroups, instanceType
         if sub == "" {
             return errors.New("Subnet can not be empty.")
         }
+    }
+    if len(securityGroups) == 0 {
+        return errors.New("Need at least one security group.")
     }
     for _, sg := range securityGroups {
         if sg == "" {
