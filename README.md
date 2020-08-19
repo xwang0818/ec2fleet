@@ -24,3 +24,10 @@ cd build/
 # eg.
 .ec2fleet -nodes=5 -volumeSize=4 -subnets=subnet1,subnet2,subnet3,subnet4,subnet5 -securityGroups=sg1,sg2
 ```
+
+### Using environment variables
+Modify etc/env.config to include all the inputs
+```
+source etc/env.config
+.ec2fleet -env
+```
